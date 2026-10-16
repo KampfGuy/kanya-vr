@@ -3,8 +3,8 @@ import {GLTFLoader} from "three/addons/loaders/GLTFLoader.js";
 import {VRButton} from "three/addons/webxr/VRButton.js";
 import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {VRMLoaderPlugin,VRMUtils} from "@pixiv/three-vrm";
-import {POSES,EXPR,roleFor,poseFor,boneName} from "./poses.js?v=1";
-if(/[?&]emu\b/.test(location.search)){try{const m=await import("https://esm.sh/iwer@2");const d=new m.XRDevice(m.metaQuest3);d.installRuntime();window.xrDev=d}catch(e){console.warn("emulator failed",e)}}
+import {POSES,EXPR,roleFor,poseFor,boneName} from "./poses.js?v=2";
+if(/[?&]emu\b/.test(location.search)){try{const m=await import("https://esm.sh/iwer@2");const d=new m.XRDevice(m.metaQuest3);d.installRuntime({forceInstall:true});window.xrDev=d}catch(e){console.warn("emulator failed",e)}}
 const WORKER="https://grokchan-api.kampfguy.workers.dev",CHAR="kanya",SPEAKER=6,NAME="Kanya-Chan",ACC="#ff5fa2";
 const $=id=>document.getElementById(id),log=window.vrLog=[];const L=(...a)=>{log.push(a.join(" "));console.log("[vr]",...a)};
 // ---------- renderer / scene ----------
@@ -19,10 +19,10 @@ scene.add(new THREE.HemisphereLight(0xfff4ec,0x3a2c38,1.5));const sun=new THREE.
 const tex=new THREE.TextureLoader().load("bg-classroom.jpg",t=>{t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4});
 const R=5.5,arc=2.3,back=new THREE.Mesh(new THREE.CylinderGeometry(R,R,R*arc/(16/9),48,1,true,Math.PI-arc/2,arc),new THREE.MeshBasicMaterial({map:tex,side:THREE.BackSide,toneMapped:false}));
 back.position.set(0,R*arc/(16/9)/2-0.35,0);back.scale.x=-1;scene.add(back);
-const floor=new THREE.Mesh(new THREE.CircleGeometry(R,48),new THREE.MeshLambertMaterial({color:0x6b4a33}));floor.rotation.x=-Math.PI/2;scene.add(floor);
+const floor=new THREE.Mesh(new THREE.CircleGeometry(R,48),new THREE.MeshLambertMaterial({color:0x5e4330}));floor.rotation.x=-Math.PI/2;scene.add(floor);
 const bc=document.createElement("canvas");bc.width=bc.height=128;{const g=bc.getContext("2d"),gr=g.createRadialGradient(64,64,0,64,64,64);gr.addColorStop(0,"rgba(0,0,0,.55)");gr.addColorStop(1,"rgba(0,0,0,0)");g.fillStyle=gr;g.fillRect(0,0,128,128)}
 const blob=new THREE.Mesh(new THREE.PlaneGeometry(0.9,0.9),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(bc),transparent:true,depthWrite:false}));blob.rotation.x=-Math.PI/2;blob.position.set(0,0.005,-1.2);scene.add(blob);
-const orbit=new OrbitControls(cam,cv);orbit.target.set(0,1.3,-1.2);orbit.enableDamping=true;orbit.minDistance=0.6;orbit.maxDistance=4;orbit.update();
+const orbit=new OrbitControls(cam,cv);orbit.target.set(0.3,1.25,-1.1);orbit.enableDamping=true;orbit.minDistance=0.6;orbit.maxDistance=4;orbit.update();
 addEventListener("resize",()=>{if(renderer.xr.isPresenting)return;renderer.setSize(innerWidth,innerHeight,false);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()});
 // ---------- character ----------
 let vrm=null,bones={},NP={},headB=null,neckB=null;const lookT=new THREE.Object3D();scene.add(lookT);
@@ -55,7 +55,7 @@ function drawPanel(){pg.clearRect(0,0,PW,PH);rr(0,0,PW,PH,48);pg.fillStyle="rgba
  const sz=34,lh=46,maxW=PW-200;const blocks=[];
  for(const m of msgs){const lines=layout(m.text,maxW,sz);blocks.push({m,lines,h:lines.length*lh+36})}
  if(draft){const lines=layout(draft+"▌",maxW,sz);blocks.push({m:{role:"draft"},lines,h:lines.length*lh+36})}
- let y=PH-170;for(let k=blocks.length-1;k>=0&&y>180;k--){const b=blocks[k];y-=b.h+18;const user=b.m.role!=="assistant";
+ let y=PH-160;for(let k=blocks.length-1;k>=0&&y>180;k--){const b=blocks[k];y-=b.h+18;const user=b.m.role!=="assistant";
   const bw=Math.min(maxW+40,Math.max(...b.lines.map(l=>l.reduce((a,r)=>a+r[2],0)),60)+40),x=user?PW-48-bw:48;
   rr(x,y,bw,b.h,28);pg.fillStyle=b.m.role==="draft"?"rgba(255,255,255,.08)":user?ACC:"rgba(255,255,255,.1)";pg.fill();
   let ly=y+18+sz;for(const l of b.lines){let lx=x+20;for(const [t,st,w] of l){pg.font=font(st,sz);pg.fillStyle=st==="b"?"#fff":st==="i"?"#e6dcef":"#ece8f1";if(user)pg.fillStyle="#fff";pg.fillText(t,lx,ly);lx+=w}ly+=lh}}
@@ -83,7 +83,7 @@ function hitPanel(c){tmpM.identity().extractRotation(c.matrixWorld);ray.ray.orig
 cv.addEventListener("click",e=>{if(renderer.xr.isPresenting)return;const v=new THREE.Vector2(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(v,cam);const h=ray.intersectObject(panel)[0];if(h){const b=btnAt(h.uv);if(b)press(b)}});
 function recenter(){if(renderer.xr.isPresenting){const xc=renderer.xr.getCamera(),p=new THREE.Vector3();xc.getWorldPosition(p);
   const e=new THREE.Euler().setFromQuaternion(xc.getWorldQuaternion(new THREE.Quaternion()),"YXZ");rig.rotation.y-=e.y;rig.position.x-=p.x;rig.position.z-=p.z-0.0}
- else{cam.position.set(0,1.45,0.35);orbit.target.set(0,1.3,-1.2);orbit.update()}}
+ else{cam.position.set(0.3,1.45,1.0);orbit.target.set(0.3,1.25,-1.1);orbit.update()}}
 // ---------- input: keyboard + speech ----------
 const SR=window.SpeechRecognition||window.webkitSpeechRecognition||null;window.vrCaps={xr:null,speech:!!SR};if(SR)$("mic").hidden=false;
 let rec=null;function toggleMic(){if(!SR)return;if(micOn){rec?.stop();return}rec=new SR();rec.lang="en-US";rec.interimResults=true;
@@ -127,7 +127,7 @@ navigator.xr?.isSessionSupported?.("immersive-vr").then(ok=>{window.vrCaps.xr=ok
 if(!navigator.xr){window.vrCaps.xr=false}
 const vb=VRButton.createButton(renderer,{optionalFeatures:["local-floor","bounded-floor"]});$("xrslot").append(vb);
 renderer.xr.addEventListener("sessionstart",()=>{L("session start");rig.position.set(0,0,0);cam.position.set(0,0,0);unlockAudio()});
-renderer.xr.addEventListener("sessionend",()=>{cam.position.set(0,1.45,0.35);orbit.update()});
+renderer.xr.addEventListener("sessionend",()=>{cam.position.set(0.3,1.45,1.0);orbit.update()});
 // ---------- animate ----------
 const clock=new THREE.Clock(),Z0=[0,0,0],tv=new THREE.Vector3(),hq=new THREE.Quaternion();let th=0,nextBlink=2,blinkT=-1;
 drawPanel();
