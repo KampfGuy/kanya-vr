@@ -103,7 +103,7 @@ function setStatus(s){statusTxt=s;$("st").textContent=s||"online";drawPanel()}
 function splitJa(r){const m=r.match(/<ja>([\s\S]*?)(?:<\/ja>|$)/i);let en=r,ja="";if(m){ja=m[1];en=r.slice(0,m.index)+r.slice(m.index+m[0].length)}
  return{en:en.replace(/<\/?ja>?/gi,"").trim(),ja:ja.replace(/<[^>]*>?/g,"").replace(/[*_~`#<>]+/g,"").replace(/[\p{Extended_Pictographic}\uFE0F\u200d]/gu,"").trim()}}
 const pw=()=>localStorage.getItem("gc_pw")||"";
-async function send(q){if(!pw()){showGate();return}unlockAudio();msgs.push({role:"user",text:q});hist.push({role:"user",content:q});setStatus("typing…");
+async function send(q){unlockAudio();msgs.push({role:"user",text:q});hist.push({role:"user",content:q});setStatus("typing…");
  try{const r=await fetch(WORKER+"/chat",{method:"POST",headers:{"Content-Type":"application/json","X-Access-Password":pw()},body:JSON.stringify({messages:hist.slice(-20),character:CHAR})});
   const o=await r.json();if(r.status===401){msgs.pop();hist.pop();setStatus("");showGate(true);return}if(!r.ok)throw new Error(o.error||r.status);
   hist.push({role:"assistant",content:o.reply});const sp=splitJa(o.reply);L("reply",sp.en.length,"ja",sp.ja.length);
@@ -121,7 +121,7 @@ function talk(sec){talkUntil=sec===Infinity?Infinity:performance.now()/1000+sec;
 // ---------- gate ----------
 function showGate(bad){$("gate").hidden=false;$("gerr").hidden=!bad;$("pw").value=pw();setTimeout(()=>$("pw").focus(),50)}
 $("gf").onsubmit=e=>{e.preventDefault();const v=$("pw").value.trim();if(!v)return;localStorage.setItem("gc_pw",v);$("gate").hidden=true;unlockAudio()};
-if(!pw())showGate();
+// PW_DISABLED if(!pw())showGate();
 // ---------- XR button ----------
 navigator.xr?.isSessionSupported?.("immersive-vr").then(ok=>{window.vrCaps.xr=ok;L("xr supported",ok)}).catch(()=>{window.vrCaps.xr=false});
 if(!navigator.xr){window.vrCaps.xr=false}
